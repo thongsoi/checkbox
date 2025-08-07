@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head><title>Checkbox Form</title></head>
+<body>
+  <h2>Select Your Options</h2>
+  <form id="checkboxForm">
+    <input type="hidden" id="userId" value="123"> <!-- This would usually come from your login system -->
+    <label><input type="checkbox" name="options" value="option1"> Option 1</label><br>
+    <label><input type="checkbox" name="options" value="option2"> Option 2</label><br>
+    <label><input type="checkbox" name="options" value="option3"> Option 3</label><br>
+    <button type="submit">Submit</button>
+  </form>
+
+  <script>
+    document.getElementById("checkboxForm").addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      const userId = parseInt(document.getElementById("userId").value);
+      const checked = Array.from(document.querySelectorAll('input[name="options"]:checked'))
+                          .map(cb => cb.value);
+
+      const res = await fetch("/api/save-checkboxes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          selected: checked
+        })
+      });
+
+      if (res.ok) {
+        alert("Selections saved!");
+      } else {
+        alert("Failed to save.");
+      }
+    });
+  </script>
+</body>
+</html>
