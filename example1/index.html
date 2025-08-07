@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <form id="checkboxForm">
+  <label><input type="checkbox" name="options" value="option1"> Option 1</label>
+  <label><input type="checkbox" name="options" value="option2"> Option 2</label>
+  <label><input type="checkbox" name="options" value="option3"> Option 3</label>
+  <button type="submit">Submit</button>
+</form>
+
+<script>
+document.getElementById("checkboxForm").addEventListener("submit", async function(event) {
+  event.preventDefault();
+  
+  const checked = Array.from(document.querySelectorAll('input[name="options"]:checked'))
+                      .map(cb => cb.value);
+
+  const res = await fetch("/api/save-checkboxes", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ selected: checked })
+  });
+
+  if (res.ok) {
+    alert("Checkboxes saved!");
+  } else {
+    alert("Error saving checkboxes.");
+  }
+});
+</script>
+
+</body>
+</html>
