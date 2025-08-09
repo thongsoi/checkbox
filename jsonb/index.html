@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Preferences</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        input[type="number"] {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .checkbox-group {
+            margin: 20px 0;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        .checkbox-item label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .current-preferences {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+        .current-preferences h3 {
+            margin-top: 0;
+        }
+        .preference-item {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 5px 10px;
+            margin: 3px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>User Preferences Management</h1>
+        
+        <form id="preferencesForm">
+            <div class="form-group">
+                <label for="userId">User ID:</label>
+                <input type="number" id="userId" value="1" min="1" required>
+            </div>
+            
+            <div class="checkbox-group">
+                <label>Notification Preferences:</label>
+                
+                <div class="checkbox-item">
+                    <input type="checkbox" name="preferences" value="email_notifications" id="email">
+                    <label for="email">Email Notifications</label>
+                </div>
+                
+                <div class="checkbox-item">
+                    <input type="checkbox" name="preferences" value="sms_notifications" id="sms">
+                    <label for="sms">SMS Notifications</label>
+                </div>
+                
+                <div class="checkbox-item">
+                    <input type="checkbox" name="preferences" value="push_notifications" id="push">
+                    <label for="push">Push Notifications</label>
+                </div>
+                
+                <div class="checkbox-item">
+                    <input type="checkbox" name="preferences" value="marketing_emails" id="marketing">
+                    <label for="marketing">Marketing Emails</label>
+                </div>
+                
+                <div class="checkbox-item">
+                    <input type="checkbox" name="preferences" value="newsletter" id="newsletter">
+                    <label for="newsletter">Newsletter Subscription</label>
+                </div>
+                
+                <div class="checkbox-item">
+                    <input type="checkbox" name="preferences" value="product_updates" id="updates">
+                    <label for="updates">Product Updates</label>
+                </div>
+            </div>
+            
+            <button type="submit">Save Preferences</button>
+            <button type="button" id="loadBtn">Load Current Preferences</button>
+        </form>
+        
+        <div id="message"></div>
+        
+        <div id="currentPreferences" class="current-preferences" style="display: none;">
+            <h3>Current Preferences:</h3>
+            <div id="preferencesList"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        
+        // Get form elements
+        const form = document.getElementById('preferencesForm');
+        const userIdInput = document.getElementById('userId');
+        const loadBtn = document.getElementById('loadBtn');
+        const messageDiv = document.getElementById('message');
+        const currentPrefsDiv = document.getElementById('currentPreferences');
+        const preferencesListDiv = document.getElementById('preferencesList');
+        
+        // Show message to user
+        function showMessage(text, type) {
+            messageDiv.innerHTML = `<div class="message ${type}">${text}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Load user preferences from server
+        async function loadPreferences() {
+            const userId = userIdInput.value;
+            if (!userId) {
+                showMessage('Please enter a User ID', 'error');
+                return;
+            }
+            
+            try {
+                loadBtn.disabled = true;
+                loadBtn.textContent = 'Loading...';
+                
+                const response = await fetch(`${API_BASE}/preferences/${userId}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Clear all checkboxes first
+                    const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+                    checkboxes.forEach(cb => cb.checked = false);
+                    
+                    // Check the boxes for saved preferences
+                    data.preferences.forEach(pref => {
+                        const checkbox = form.querySelector(`input[value="${pref}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                    
+                    // Display current preferences
+                    displayCurrentPreferences(data.preferences);
+                    showMessage('Preferences loaded successfully!', 'success');
+                } else {
+                    showMessage(data.error || 'Failed to load preferences', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading preferences:', error);
+                showMessage('Network error occurred while loading preferences', 'error');
+            } finally {
+                loadBtn.disabled = false;
+                loadBtn.textContent = 'Load Current Preferences';
+            }
+        }
+        
+        // Display current preferences
+        function displayCurrentPreferences(preferences) {
+            if (preferences.length === 0) {
+                preferencesListDiv.innerHTML = '<p>No preferences selected</p>';
+            } else {
+                const prefsHTML = preferences.map(pref => 
+                    `<span class="preference-item">${pref.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>`
+                ).join('');
+                preferencesListDiv.innerHTML = prefsHTML;
+            }
+            currentPrefsDiv.style.display = 'block';
+        }
+        
+        // Save preferences to server
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userId = userIdInput.value;
+            if (!userId) {
+                showMessage('Please enter a User ID', 'error');
+                return;
+            }
+            
+            const formData = new FormData(form);
+            const selectedPreferences = formData.getAll('preferences');
+            
+            try {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving...';
+                
+                const response = await fetch(`${API_BASE}/preferences/${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ preferences: selectedPreferences })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayCurrentPreferences(data.preferences);
+                    showMessage('Preferences saved successfully!', 'success');
+                } else {
+                    showMessage(data.error || 'Failed to save preferences', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving preferences:', error);
+                showMessage('Network error occurred while saving preferences', 'error');
+            } finally {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Save Preferences';
+            }
+        });
+        
+        // Load preferences when clicking load button
+        loadBtn.addEventListener('click', loadPreferences);
+        
+        // Load preferences automatically when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPreferences();
+        });
+    </script>
+</body>
+</html>
