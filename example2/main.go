@@ -52,8 +52,8 @@ func main() {
 
 // Struct to parse JSON from frontend
 type CheckboxRequest struct {
-	UserID   int      `json:"user_id"`
-	Selected []string `json:"selected"`
+	ChallengeID int      `json:"challenge_id"`
+	Selected    []string `json:"selected"`
 }
 
 // Serve HTML form
@@ -61,36 +61,36 @@ func serveForm(w http.ResponseWriter, r *http.Request) {
 	html := `
 <!DOCTYPE html>
 <html>
-<head><title>Checkbox Form</title></head>
+<head><title>Challenge Preferences Form</title></head>
 <body>
-  <h2>Select Your Options</h2>
-  <form id="checkboxForm">
-    <input type="hidden" id="userId" value="123"> <!-- This would usually come from your login system -->
-    <label><input type="checkbox" name="options" value="option1"> Option 1</label><br>
-    <label><input type="checkbox" name="options" value="option2"> Option 2</label><br>
-    <label><input type="checkbox" name="options" value="option3"> Option 3</label><br>
+  <h2>Select your preferences</h2>
+  <form id="challengePreferencesForm">
+    <input type="hidden" id="challengeId" value="123"> <!-- This would usually come from your login system -->
+    <label><input type="checkbox" name="challenge_preferences" value="1">Feasible solutions</label><br>
+    <label><input type="checkbox" name="challenge_preferences" value="2">Proof of concept</label><br>
+    <label><input type="checkbox" name="challenge_preferences" value="3">Technical advice</label><br>
     <button type="submit">Submit</button>
   </form>
 
   <script>
-    document.getElementById("checkboxForm").addEventListener("submit", async function(event) {
+    document.getElementById("challengePreferencesForm").addEventListener("submit", async function(event) {
       event.preventDefault();
 
-      const userId = parseInt(document.getElementById("userId").value);
-      const checked = Array.from(document.querySelectorAll('input[name="options"]:checked'))
+      const challengeId = parseInt(document.getElementById("challengeId").value);
+      const checked = Array.from(document.querySelectorAll('input[name="challenge_preferences"]:checked'))
                           .map(cb => cb.value);
 
       const res = await fetch("/api/save-checkboxes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: userId,
+          challenge_id: challengeId,
           selected: checked
         })
       });
 
       if (res.ok) {
-        alert("Selections saved!");
+        alert("Preferences saved!");
       } else {
         alert("Failed to save.");
       }
@@ -111,10 +111,10 @@ func saveCheckboxesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `INSERT INTO user_selections (user_id, option_name) VALUES ($1, $2)`
+	query := `INSERT INTO challenge_preferences (challenge_id, preferences) VALUES ($1, $2)`
 
 	for _, option := range req.Selected {
-		if _, err := db.Exec(query, req.UserID, option); err != nil {
+		if _, err := db.Exec(query, req.ChallengeID, option); err != nil {
 			log.Println("Insert error:", err)
 			http.Error(w, "Database error", http.StatusInternalServerError)
 			return
@@ -128,10 +128,10 @@ func saveCheckboxesHandler(w http.ResponseWriter, r *http.Request) {
 // Create table if not exists
 func createTable() {
 	query := `
-	CREATE TABLE IF NOT EXISTS user_selections (
+	CREATE TABLE IF NOT EXISTS challenge_preferences (
 		id SERIAL PRIMARY KEY,
-		user_id INTEGER NOT NULL,
-		option_name TEXT NOT NULL,
+		challenge_id INTEGER NOT NULL,
+		preferences TEXT NOT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	)`
 	if _, err := db.Exec(query); err != nil {
